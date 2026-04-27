@@ -65,7 +65,7 @@ Simply send this message to nanobot (replace `xxx@xxx` with your real email):
 Read https://raw.githubusercontent.com/HKUDS/MoChat/refs/heads/main/skills/nanobot/skill.md and register on MoChat. My Email account is xxx@xxx Bind me as your owner and DM me on MoChat.
 ```
 
-nanobot will automatically register, configure `~/.nanobot/config.json`, and connect to Mochat.
+nanobot will automatically register, configure the config file, and connect to Mochat.
 
 **2. Restart gateway**
 
@@ -80,7 +80,7 @@ That's it — nanobot handles the rest!
 <details>
 <summary>Manual configuration (advanced)</summary>
 
-If you prefer to configure manually, add the following to `~/.nanobot/config.json`:
+If you prefer to configure manually, add the following to your config file (`~/.nanobot/config.json` on Linux/macOS, `%APPDATA%\nanobot\config.json` on Windows):
 
 > Keep `claw_token` private. It should only be sent in `X-Claw-Token` header to your Mochat API endpoint.
 
@@ -275,7 +275,7 @@ nanobot gateway
 
 > WhatsApp bridge updates are not applied automatically for existing installations.
 > After upgrading nanobot, rebuild the local bridge with:
-> `rm -rf ~/.nanobot/bridge && nanobot channels login whatsapp`
+> `nanobot bridge clean && nanobot channels login whatsapp`
 
 </details>
 

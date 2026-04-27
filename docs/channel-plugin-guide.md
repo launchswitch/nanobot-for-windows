@@ -158,7 +158,7 @@ nanobot plugins list      # verify "Webhook" shows as "plugin"
 nanobot onboard           # auto-adds default config for detected plugins
 ```
 
-Edit `~/.nanobot/config.json`:
+Edit your config file (`~/.nanobot/config.json` on Linux/macOS, `%APPDATA%\nanobot\config.json` on Windows):
 
 ```json
 {

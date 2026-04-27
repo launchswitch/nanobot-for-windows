@@ -380,6 +380,11 @@ def onboard(
 
     sync_workspace_templates(workspace_path)
 
+    from nanobot.config.paths import get_data_root
+
+    data_root = get_data_root()
+    console.print(f"\n[dim]Data directory: {data_root}[/dim]")
+
     agent_cmd = 'nanobot agent -m "Hello!"'
     gateway_cmd = "nanobot gateway"
     if config:
@@ -1262,6 +1267,9 @@ def agent(
 channels_app = typer.Typer(help="Manage channels")
 app.add_typer(channels_app, name="channels")
 
+bridge_app = typer.Typer(help="Manage the WhatsApp bridge")
+app.add_typer(bridge_app, name="bridge")
+
 
 @channels_app.command("status")
 def channels_status(
@@ -1356,6 +1364,22 @@ def _get_bridge_dir() -> Path:
         raise typer.Exit(1)
 
     return user_bridge
+
+
+@bridge_app.command("clean")
+def bridge_clean():
+    """Remove the local WhatsApp bridge installation."""
+    import shutil
+
+    from nanobot.config.paths import get_bridge_install_dir
+
+    bridge_dir = get_bridge_install_dir()
+    if not bridge_dir.exists():
+        console.print(f"[dim]Bridge directory does not exist: {bridge_dir}[/dim]")
+        return
+
+    shutil.rmtree(bridge_dir)
+    console.print(f"[green]✓[/green] Removed bridge at {bridge_dir}")
 
 
 @channels_app.command("login")

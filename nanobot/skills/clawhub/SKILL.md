@@ -27,21 +27,25 @@ npx --yes clawhub@latest search "web scraping" --limit 5
 ## Install
 
 ```bash
-npx --yes clawhub@latest install <slug> --workdir %APPDATA%\nanobot\workspace
+npx --yes clawhub@latest install <slug> --workdir <workspace-path>
 ```
 
-Replace `<slug>` with the skill name from search results. This places the skill into `%APPDATA%\nanobot\workspace\skills\`, where nanobot loads workspace skills from. Always include `--workdir`.
+Replace `<slug>` with the skill name from search results. Replace `<workspace-path>` with the nanobot workspace directory:
+- **Linux/macOS**: `~/.nanobot/workspace`
+- **Windows**: `%APPDATA%\nanobot\workspace`
+
+This places the skill into the workspace's `skills/` directory, where nanobot loads workspace skills from. Always include `--workdir`.
 
 ## Update
 
 ```bash
-npx --yes clawhub@latest update --all --workdir %APPDATA%\nanobot\workspace
+npx --yes clawhub@latest update --all --workdir <workspace-path>
 ```
 
 ## List installed
 
 ```bash
-npx --yes clawhub@latest list --workdir %APPDATA%\nanobot\workspace
+npx --yes clawhub@latest list --workdir <workspace-path>
 ```
 
 ## Notes
@@ -49,5 +53,5 @@ npx --yes clawhub@latest list --workdir %APPDATA%\nanobot\workspace
 - Requires Node.js (`npx` comes with it).
 - No API key needed for search and install.
 - Login (`npx --yes clawhub@latest login`) is only required for publishing.
-- `--workdir %APPDATA%\nanobot\workspace` is critical — without it, skills install to the current directory instead of the nanobot workspace.
+- `--workdir` is critical — without it, skills install to the current directory instead of the nanobot workspace. Use the platform-appropriate workspace path.
 - After install, remind the user to start a new session to load the skill.

@@ -138,6 +138,8 @@ pip install -e .
 uv tool install nanobot-ai
 ```
 
+**Windows users:** `uv tool install nanobot-ai` works natively. Config is stored at `%APPDATA%\nanobot\config.json` (not `~/.nanobot`). PowerShell 7 or Windows Terminal is recommended for the best interactive experience.
+
 **Install from PyPI**
 
 ```bash
@@ -152,7 +154,7 @@ pip install nanobot-ai
 nanobot onboard
 ```
 
-**2. Configure** (`~/.nanobot/config.json`)
+**2. Configure** (`~/.nanobot/config.json`, or `%APPDATA%\nanobot\config.json` on Windows)
 
 Configure these **two parts** in your config (other options have defaults). Add or merge the following blocks into your existing config instead of replacing the whole file.
 
@@ -201,7 +203,7 @@ nanobot agent
   <img src="images/nanobot_webui.png" alt="nanobot webui preview" width="900">
 </p>
 
-**1. Enable the WebSocket channel in `~/.nanobot/config.json`**
+**1. Enable the WebSocket channel in your config** (`~/.nanobot/config.json`, or `%APPDATA%\nanobot\config.json` on Windows)
 
 ```json
 { "channels": { "websocket": { "enabled": true } } }

@@ -1,0 +1,33 @@
+# Winget manifest for nanobot-ai
+# Submit to: https://github.com/microsoft/winget-pkgs
+# Package ID: HKUDS.nanobot
+# This manifest uses the Python installer approach — the package is distributed via PyPI
+# and installed using `uv tool install` or `pip install`.
+
+PackageIdentifier: HKUDS.nanobot
+PackageVersion: 0.1.5.2
+PackageName: nanobot
+PackageUrl: https://github.com/HKUDS/nanobot
+Publisher: HKUDS
+PublisherUrl: https://github.com/HKUDS
+PublisherSupportUrl: https://github.com/HKUDS/nanobot/issues
+License: MIT
+LicenseUrl: https://github.com/HKUDS/nanobot/blob/main/LICENSE
+ShortDescription: Ultra-lightweight open-source AI agent with chat channels, memory, MCP, and deployment paths
+Description: >
+  nanobot is an open-source and ultra-lightweight AI agent. It keeps the core agent loop small
+  and readable while supporting chat channels (Telegram, Discord, WhatsApp, Slack, and more),
+  memory, MCP, and practical deployment paths.
+Tags:
+  - ai
+  - agent
+  - llm
+  - chatbot
+  - assistant
+  - telegram
+  - discord
+  - whatsapp
+  - mcp
+ReleaseNotesUrl: https://github.com/HKUDS/nanobot/releases
+ManifestType: defaultLocale
+ManifestVersion: 1.9.0

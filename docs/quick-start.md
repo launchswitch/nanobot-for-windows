@@ -7,6 +7,8 @@
 > If you want the newest features and experiments, install from source.
 > If you want the most stable day-to-day experience, install from PyPI or with `uv`.
 
+> **Windows users:** `uv tool install nanobot-ai` and `pip install nanobot-ai` both work natively. Your config lives at `%APPDATA%\nanobot\config.json` (shown in the `nanobot onboard` output). PowerShell 7 or Windows Terminal is recommended for the best interactive experience.
+
 **Install from source** (latest features, experimental changes may land here first; recommended for development)
 
 ```bash
@@ -46,14 +48,14 @@ nanobot --version
 **Using WhatsApp?** Rebuild the local bridge after upgrading:
 
 ```bash
-rm -rf ~/.nanobot/bridge
+nanobot bridge clean
 nanobot channels login whatsapp
 ```
 
 ## Quick Start
 
 > [!TIP]
-> Set your API key in `~/.nanobot/config.json`.
+> Set your API key in `~/.nanobot/config.json` (Linux/macOS) or `%APPDATA%\nanobot\config.json` (Windows).
 > Get API keys: [OpenRouter](https://openrouter.ai/keys) (Global)
 >
 > For other LLM providers, please see [`configuration.md`](./configuration.md).
@@ -68,7 +70,7 @@ nanobot onboard
 
 Use `nanobot onboard --wizard` if you want the interactive setup wizard.
 
-**2. Configure** (`~/.nanobot/config.json`)
+**2. Configure** (`~/.nanobot/config.json`, or `%APPDATA%\nanobot\config.json` on Windows)
 
 Configure these **two parts** in your config (other options have defaults).
 

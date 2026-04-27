@@ -248,3 +248,18 @@ docker run -v "$HOME/.nanobot:/home/nanobot/.nanobot" -p 18790:18790 nanobot gat
 ```
 
 > **Note:** On Windows, nanobot stores config in `%APPDATA%\nanobot` by default. The Docker path still uses `~/.nanobot` inside the container.
+
+### Windows Tips
+
+**Long paths (>260 characters):** Windows has a legacy 260-character path limit. If your workspace is nested deeply, you may hit errors. To fix this:
+- Enable the Long Paths registry setting: `reg add "HKLM\SYSTEM\CurrentControlSet\Control\FileSystem" /v LongPathsEnabled /t REG_DWORD /d 1 /f`
+- Or keep your workspace close to the drive root (e.g. `C:\nanobot\workspace`)
+
+**Editing config files:** Do not use Windows Notepad to edit `config.json` — it may save with a BOM (byte-order mark) or CRLF line endings, which can cause JSON parsing errors. Use [VS Code](https://code.visualstudio.com/), [Notepad++](https://notepad-plus-plus.org/), or any editor that saves UTF-8 without BOM.
+
+**Corporate proxy / MITM certificates:** If you're behind a corporate proxy that intercepts HTTPS traffic, you may need to set:
+```powershell
+$env:REQUESTS_CA_BUNDLE = "C:\path\to\your\corporate-ca-bundle.pem"
+$env:SSL_CERT_FILE = "C:\path\to\your\corporate-ca-bundle.pem"
+```
+Export the proxy's CA certificate chain to a PEM file and point these environment variables at it. Add them to your PowerShell profile (`$PROFILE`) for persistence.

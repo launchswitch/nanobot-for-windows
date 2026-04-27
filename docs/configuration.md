@@ -1,6 +1,8 @@
 # Configuration
 
-Config file: `~/.nanobot/config.json`
+Config file: `~/.nanobot/config.json` (Linux/macOS) or `%APPDATA%\nanobot\config.json` (Windows)
+
+> **Windows note:** All `~/.nanobot/config.json` references below use `%APPDATA%\nanobot\config.json` on Windows.
 
 > [!NOTE]
 > If your config file is older than the current schema, you can refresh it without overwriting your existing values:

@@ -2,7 +2,7 @@
 
 | Command | Description |
 |---------|-------------|
-| `nanobot onboard` | Initialize config & workspace at `~/.nanobot/` |
+| `nanobot onboard` | Initialize config & workspace (`~/.nanobot/` on Linux/macOS, `%APPDATA%\nanobot\` on Windows) |
 | `nanobot onboard --wizard` | Launch the interactive onboarding wizard |
 | `nanobot onboard -c <config> -w <workspace>` | Initialize or refresh a specific instance config and workspace |
 | `nanobot agent -m "..."` | Chat with the agent |
@@ -17,5 +17,6 @@
 | `nanobot provider login openai-codex` | OAuth login for providers |
 | `nanobot channels login <channel>` | Authenticate a channel interactively |
 | `nanobot channels status` | Show channel status |
+| `nanobot bridge clean` | Remove local WhatsApp bridge (rebuild with `nanobot channels login whatsapp`) |
 
 Interactive mode exits: `exit`, `quit`, `/exit`, `/quit`, `:q`, or `Ctrl+D`.
