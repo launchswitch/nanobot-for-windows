@@ -533,7 +533,7 @@ class TelegramChannel(BaseChannel):
                     **extra,
                 )
             except Exception as e:
-                filename = media_path.rsplit("/", 1)[-1]
+                filename = Path(media_path).name
                 logger.error("Failed to send media {}: {}", media_path, e)
                 await self._app.bot.send_message(
                     chat_id=chat_id,

@@ -47,8 +47,15 @@ def _load_or_create_bridge_token(path: Path) -> str:
     token = secrets.token_urlsafe(32)
     path.write_text(token, encoding="utf-8")
     try:
-        path.chmod(0o600)
-    except OSError:
+        if os.name == "nt":
+            subprocess.run(
+                ["icacls", str(path), "/inheritance:r",
+                 "/grant:r", f"{os.environ.get('USERNAME', '%USERNAME%')}:F"],
+                check=True, capture_output=True,
+            )
+        else:
+            path.chmod(0o600)
+    except (OSError, subprocess.CalledProcessError):
         pass
     return token
 
@@ -188,7 +195,7 @@ class WhatsAppChannel(BaseChannel):
                     "to": chat_id,
                     "filePath": media_path,
                     "mimetype": mime or "application/octet-stream",
-                    "fileName": media_path.rsplit("/", 1)[-1],
+                    "fileName": Path(media_path).name,
                 }
                 await self._ws.send(json.dumps(payload, ensure_ascii=False))
             except Exception as e:

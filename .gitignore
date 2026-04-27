@@ -86,6 +86,10 @@ nano.*.save
 .env.*
 !.env.example
 
+# Claude Code
+.claude/
+
+
 # Logs & temp
 *.log
 logs/
