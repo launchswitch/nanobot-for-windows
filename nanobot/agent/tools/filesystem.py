@@ -366,7 +366,7 @@ class WriteFileTool(_FsTool):
             fp.parent.mkdir(parents=True, exist_ok=True)
             fp.write_text(content, encoding="utf-8")
             file_state.record_write(fp)
-            return f"Successfully wrote {len(content)} characters to {fp}"
+            return f"Successfully wrote {len(content)} characters to {fp.as_posix()}"
         except PermissionError as e:
             return f"Error: {e}"
         except Exception as e:
@@ -719,7 +719,7 @@ class EditFileTool(_FsTool):
                     return f"Error: Cannot create file — {path} already exists and is not empty."
                 fp.write_text(new_text, encoding="utf-8")
                 file_state.record_write(fp)
-                return f"Successfully edited {fp}"
+                return f"Successfully edited {fp.as_posix()}"
 
             # Read-before-edit check
             warning = file_state.check_read(fp)

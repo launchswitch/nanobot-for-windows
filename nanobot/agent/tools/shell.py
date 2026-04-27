@@ -4,6 +4,7 @@ import asyncio
 import os
 import re
 import shutil
+import signal
 import sys
 from pathlib import Path
 from typing import Any
@@ -47,10 +48,12 @@ class ExecTool(Tool):
         sandbox: str = "",
         path_append: str = "",
         allowed_env_keys: list[str] | None = None,
+        shell: str = "auto",
     ):
         self.timeout = timeout
         self.working_dir = working_dir
         self.sandbox = sandbox
+        self.shell = shell
         self.deny_patterns = deny_patterns or [
             r"\brm\s+-[rf]{1,2}\b",          # rm -r, rm -rf, rm -fr
             r"\bdel\s+/[fq]\b",              # del /f, del /q
@@ -87,18 +90,49 @@ class ExecTool(Tool):
 
     @property
     def description(self) -> str:
-        return (
+        base = (
             "Execute a shell command and return its output. "
-            "Prefer read_file/write_file/edit_file over cat/echo/sed, "
-            "and grep/glob over shell find/grep. "
+            "Prefer read_file/write_file/edit_file over shell commands. "
             "Use -y or --yes flags to avoid interactive prompts. "
-            "Output is truncated at 10 000 chars; timeout defaults to 60s."
-            "On Windows, commands run in PowerShell (pwsh) if available."
+            "Output is truncated at 10 000 chars; timeout defaults to 60s. "
         )
+        if _IS_WINDOWS:
+            effective = self._resolve_shell()
+            if effective in ("pwsh", "powershell"):
+                return base + (
+                    "Commands run in PowerShell. "
+                    "Use cmdlets like Get-Content, Set-Location, Get-ChildItem. "
+                    "Env vars use $env:NAME syntax."
+                )
+            return base + "Commands run in cmd.exe."
+        return base + "Prefer grep/glob over shell find/grep."
 
     @property
     def exclusive(self) -> bool:
         return True
+
+    def _resolve_shell(self) -> str:
+        """Resolve the configured shell to an actual binary name."""
+        preference = self.shell
+        if preference == "auto":
+            if _IS_WINDOWS:
+                if shutil.which("pwsh"):
+                    return "pwsh"
+                if shutil.which("powershell"):
+                    return "powershell"
+                return "cmd"
+            return "bash"
+        resolved = shutil.which(preference)
+        if resolved:
+            return preference
+        logger.warning("Shell '{}' not found; falling back to auto-detection", preference)
+        if _IS_WINDOWS:
+            if shutil.which("pwsh"):
+                return "pwsh"
+            if shutil.which("powershell"):
+                return "powershell"
+            return "cmd"
+        return "bash"
 
     async def execute(
         self, command: str, working_dir: str | None = None,
@@ -188,42 +222,77 @@ class ExecTool(Tool):
         except Exception as e:
             return f"Error executing command: {str(e)}"
 
-    @staticmethod
     async def _spawn(
-        command: str, cwd: str, env: dict[str, str],
+        self, command: str, cwd: str, env: dict[str, str],
     ) -> asyncio.subprocess.Process:
         """Launch *command* in a platform-appropriate shell."""
+        shell_name = self._resolve_shell()
         if _IS_WINDOWS:
-            pwsh = shutil.which("pwsh") or shutil.which("powershell")
-            if pwsh:
-                return await asyncio.create_subprocess_exec(
-                    pwsh, "-NoProfile", "-Command", command,
+            if shell_name in ("pwsh", "powershell"):
+                exe = shutil.which(shell_name)
+                process = await asyncio.create_subprocess_exec(
+                    exe, "-NoProfile", "-Command", command,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
                     cwd=cwd,
                     env=env,
                 )
-            comspec = env.get("COMSPEC", os.environ.get("COMSPEC", "cmd.exe"))
-            return await asyncio.create_subprocess_exec(
-                comspec, "/c", command,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                cwd=cwd,
-                env=env,
-            )
-        bash = shutil.which("bash") or "/bin/bash"
+            else:
+                comspec = env.get("COMSPEC", os.environ.get("COMSPEC", "cmd.exe"))
+                process = await asyncio.create_subprocess_exec(
+                    comspec, "/c", command,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                    cwd=cwd,
+                    env=env,
+                )
+            self._assign_job(process)
+            return process
+
+        exe = shutil.which(shell_name) or "/bin/bash"
         return await asyncio.create_subprocess_exec(
-            bash, "-l", "-c", command,
+            exe, "-l", "-c", command,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
             cwd=cwd,
             env=env,
+            start_new_session=True,
         )
 
-    @staticmethod
-    async def _kill_process(process: asyncio.subprocess.Process) -> None:
-        """Kill a subprocess and reap it to prevent zombies."""
-        process.kill()
+    def _assign_job(self, process: asyncio.subprocess.Process) -> None:
+        """On Windows, assign the subprocess to a Job Object for tree kill."""
+        if not _IS_WINDOWS:
+            return
+        if not isinstance(getattr(process, "pid", None), int):
+            return
+        try:
+            from nanobot.agent.tools._win_job import assign_process, create_kill_on_close_job
+            job = create_kill_on_close_job()
+            if job and assign_process(job, process.pid):
+                self._job_handle = job
+            elif job:
+                from nanobot.agent.tools._win_job import close_job
+                close_job(job)
+        except Exception:
+            logger.debug("Job Object assignment failed, falling back to process.kill()")
+
+    async def _kill_process(self, process: asyncio.subprocess.Process) -> None:
+        """Kill a subprocess and its tree, then reap to prevent zombies."""
+        if _IS_WINDOWS:
+            job = getattr(self, "_job_handle", None)
+            if job:
+                try:
+                    from nanobot.agent.tools._win_job import close_job
+                    close_job(job)
+                except Exception:
+                    pass
+                self._job_handle = None
+            process.kill()
+        else:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except (ProcessLookupError, PermissionError):
+                process.kill()
         try:
             await asyncio.wait_for(process.wait(), timeout=5.0)
         except asyncio.TimeoutError:

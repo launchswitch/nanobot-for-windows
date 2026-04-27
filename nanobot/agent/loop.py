@@ -361,6 +361,7 @@ class AgentLoop:
                     sandbox=self.exec_config.sandbox,
                     path_append=self.exec_config.path_append,
                     allowed_env_keys=self.exec_config.allowed_env_keys,
+                    shell=self.exec_config.shell,
                 )
             )
         if self.web_config.enable:

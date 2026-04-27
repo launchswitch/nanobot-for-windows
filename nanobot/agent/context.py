@@ -3,6 +3,7 @@
 import base64
 import mimetypes
 import platform
+import sys
 from importlib.resources import files as pkg_files
 from pathlib import Path
 from typing import Any
@@ -52,7 +53,11 @@ class ContextBuilder:
 
         skills_summary = self.skills.build_skills_summary(exclude=set(always_skills))
         if skills_summary:
-            parts.append(render_template("agent/skills_section.md", skills_summary=skills_summary))
+            parts.append(render_template(
+                "agent/skills_section.md",
+                skills_summary=skills_summary,
+                package_manager_hint="choco/scoop/winget" if sys.platform == "win32" else "apt/brew",
+            ))
 
         entries = self.memory.read_unprocessed_history(since_cursor=self.memory.get_last_dream_cursor())
         if entries:
@@ -67,7 +72,7 @@ class ContextBuilder:
 
     def _get_identity(self, channel: str | None = None) -> str:
         """Get the core identity section."""
-        workspace_path = str(self.workspace.expanduser().resolve())
+        workspace_path = str(self.workspace.expanduser().resolve()).replace("\\", "/")
         system = platform.system()
         runtime = f"{'macOS' if system == 'Darwin' else system} {platform.machine()}, Python {platform.python_version()}"
 

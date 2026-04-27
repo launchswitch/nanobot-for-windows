@@ -198,6 +198,7 @@ class ExecToolConfig(Base):
     enable: bool = True
     timeout: int = 60
     path_append: str = ""
+    shell: str = "auto"  # "auto" (detect), "cmd", "powershell", "pwsh", "bash"
     sandbox: str = ""  # sandbox backend: "" (none), "bwrap" (Linux), or "windows-restricted" (Windows)
     allowed_env_keys: list[str] = Field(default_factory=list)  # Env var names to pass through to subprocess (e.g. ["GOPATH", "JAVA_HOME"])
 

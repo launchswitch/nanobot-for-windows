@@ -15,6 +15,7 @@ from nanobot.agent.tools.shell import ExecTool
 _WINDOWS_ENV_KEYS = {
     "APPDATA", "LOCALAPPDATA", "ProgramData",
     "ProgramFiles", "ProgramFiles(x86)", "ProgramW6432",
+    "PSModulePath",
 }
 
 
@@ -100,7 +101,7 @@ class TestSpawnUnix:
             patch("asyncio.create_subprocess_exec", new_callable=AsyncMock) as mock_exec,
         ):
             mock_exec.return_value = AsyncMock()
-            await ExecTool._spawn("echo hi", "/tmp", {"HOME": "/tmp"})
+            await ExecTool()._spawn("echo hi", "/tmp", {"HOME": "/tmp"})
 
         args = mock_exec.call_args[0]
         assert "bash" in args[0]
@@ -116,10 +117,11 @@ class TestSpawnWindows:
         env = {"COMSPEC": r"C:\Windows\system32\cmd.exe", "PATH": ""}
         with (
             patch("nanobot.agent.tools.shell._IS_WINDOWS", True),
+            patch("shutil.which", return_value=None),
             patch("asyncio.create_subprocess_exec", new_callable=AsyncMock) as mock_exec,
         ):
             mock_exec.return_value = AsyncMock()
-            await ExecTool._spawn("dir", r"C:\Users", env)
+            await ExecTool()._spawn("dir", r"C:\Users", env)
 
         args = mock_exec.call_args[0]
         assert "cmd.exe" in args[0]
@@ -131,11 +133,12 @@ class TestSpawnWindows:
         env = {"PATH": ""}
         with (
             patch("nanobot.agent.tools.shell._IS_WINDOWS", True),
+            patch("shutil.which", return_value=None),
             patch.dict("os.environ", {}, clear=True),
             patch("asyncio.create_subprocess_exec", new_callable=AsyncMock) as mock_exec,
         ):
             mock_exec.return_value = AsyncMock()
-            await ExecTool._spawn("dir", r"C:\Users", env)
+            await ExecTool()._spawn("dir", r"C:\Users", env)
 
         args = mock_exec.call_args[0]
         assert args[0] == "cmd.exe"

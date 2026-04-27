@@ -134,11 +134,11 @@ class SkillsLoader:
             available = self._check_requirements(meta)
             desc = self._get_skill_description(skill_name)
             if available:
-                lines.append(f"- **{skill_name}** — {desc}  `{entry['path']}`")
+                lines.append(f"- **{skill_name}** — {desc}  `{entry['path'].replace(chr(92), '/')}`")
             else:
                 missing = self._get_missing_requirements(meta)
                 suffix = f" (unavailable: {missing})" if missing else " (unavailable)"
-                lines.append(f"- **{skill_name}** — {desc}{suffix}  `{entry['path']}`")
+                lines.append(f"- **{skill_name}** — {desc}{suffix}  `{entry['path'].replace(chr(92), '/')}`")
         return "\n".join(lines)
 
     def _get_missing_requirements(self, skill_meta: dict) -> str:

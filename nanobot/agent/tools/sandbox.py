@@ -7,6 +7,7 @@ and register it in _BACKENDS below.
 
 import os
 import shlex
+import shutil
 import sys
 from pathlib import Path
 
@@ -75,8 +76,9 @@ def _windows_restricted(command: str, workspace: str, cwd: str) -> str:
             "USERPROFILE": os.environ.get("USERPROFILE", ""),
         }.items()
     )
+    shell_exe = shutil.which("pwsh") or shutil.which("powershell") or "powershell"
     return (
-        f"powershell -NoProfile -Command "
+        f"{shell_exe} -NoProfile -Command "
         f"Set-Location {repr(sandbox_cwd)}; "
         f"{restricted_env} "
         f"& {{ {command} }}"
