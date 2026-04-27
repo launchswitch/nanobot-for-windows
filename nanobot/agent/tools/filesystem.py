@@ -3,8 +3,9 @@
 import difflib
 import mimetypes
 import os
+import sys
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Any
 
 from nanobot.agent.tools.base import Tool, tool_parameters
@@ -70,6 +71,14 @@ _BLOCKED_DEVICE_PATHS = frozenset({
     "/dev/fd/0", "/dev/fd/1", "/dev/fd/2",
 })
 
+# Windows DOS device names that produce infinite output or block on read.
+# These are special regardless of path or extension (e.g. C:\any\CON.txt → console).
+_WIN_DOS_DEVICES = frozenset({
+    "CON", "PRN", "AUX", "NUL",
+    *(f"COM{i}" for i in range(1, 10)),
+    *(f"LPT{i}" for i in range(1, 10)),
+})
+
 
 def _is_blocked_device(path: str | Path) -> bool:
     """Check if path is a blocked device that could hang or produce infinite output."""
@@ -92,6 +101,20 @@ def _is_blocked_device(path: str | Path) -> bool:
     # Check if resolved path starts with /dev/ (covers symlinks to devices)
     if resolved.startswith("/dev/"):
         return True
+
+    # Windows: block DOS device names (CON, NUL, COM1, etc.) and
+    # Win32 device namespace paths (\\.\PhysicalDrive0, \\.\CON, etc.)
+    if sys.platform == "win32":
+        raw_upper = raw.upper()
+        if raw_upper.startswith("\\\\?\\") or raw_upper.startswith("\\\\.\\"):
+            return True
+        stem = PureWindowsPath(raw_upper).stem.split(".")[0]
+        if stem in _WIN_DOS_DEVICES:
+            return True
+        stem_resolved = PureWindowsPath(resolved.upper()).stem.split(".")[0]
+        if stem_resolved in _WIN_DOS_DEVICES:
+            return True
+
     return False
 
 

@@ -5,6 +5,7 @@ strategy, and sandbox behaviour per platform — without actually running
 platform-specific binaries (all subprocess calls are mocked).
 """
 
+import os
 import sys
 from unittest.mock import AsyncMock, patch
 
@@ -53,15 +54,20 @@ class TestBuildEnvUnix:
 class TestBuildEnvWindows:
 
     _EXPECTED_KEYS = {
-        "SYSTEMROOT", "COMSPEC", "USERPROFILE", "HOMEDRIVE",
+        "SYSTEMROOT", "COMSPEC", "USERPROFILE", "USERNAME", "HOMEDRIVE",
         "HOMEPATH", "TEMP", "TMP", "PATHEXT", "PATH",
+        "COMPUTERNAME", "PROCESSOR_ARCHITECTURE", "NUMBER_OF_PROCESSORS", "OS",
         *_WINDOWS_ENV_KEYS,
     }
 
     def test_expected_keys(self):
         with patch("nanobot.agent.tools.shell._IS_WINDOWS", True):
             env = ExecTool()._build_env()
-        assert set(env) == self._EXPECTED_KEYS
+        assert self._EXPECTED_KEYS <= set(env)
+        # SESSIONNAME and DriverData are optional (only present when set)
+        for opt in ("SESSIONNAME", "DriverData"):
+            if opt in env:
+                assert opt in os.environ
 
     def test_secrets_excluded(self, monkeypatch):
         monkeypatch.setenv("OPENAI_API_KEY", "sk-secret")

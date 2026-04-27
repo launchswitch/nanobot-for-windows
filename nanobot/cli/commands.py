@@ -71,7 +71,7 @@ EXIT_COMMANDS = {"exit", "quit", "/exit", "/quit", ":q"}
 # ---------------------------------------------------------------------------
 
 _PROMPT_SESSION: PromptSession | None = None
-_SAVED_TERM_ATTRS = None  # original termios settings, restored on exit
+_SAVED_TERM_ATTRS = None  # original termios settings (Unix) or console mode (Windows), restored on exit
 
 
 def _flush_pending_tty_input() -> None:
@@ -117,6 +117,15 @@ def _restore_terminal() -> None:
     """Restore terminal to its original state (echo, line buffering, etc.)."""
     if _SAVED_TERM_ATTRS is None:
         return
+    if sys.platform == "win32":
+        try:
+            import ctypes
+            kernel32 = ctypes.windll.kernel32
+            handle = kernel32.GetStdHandle(-10)  # STD_INPUT_HANDLE
+            kernel32.SetConsoleMode(handle, _SAVED_TERM_ATTRS)
+        except Exception:
+            pass
+        return
     try:
         import termios
 
@@ -130,12 +139,23 @@ def _init_prompt_session() -> None:
     global _PROMPT_SESSION, _SAVED_TERM_ATTRS
 
     # Save terminal state so we can restore it on exit
-    try:
-        import termios
+    if sys.platform == "win32":
+        try:
+            import ctypes
+            kernel32 = ctypes.windll.kernel32
+            handle = kernel32.GetStdHandle(-10)  # STD_INPUT_HANDLE
+            mode = ctypes.c_ulong()
+            if kernel32.GetConsoleMode(handle, ctypes.byref(mode)):
+                _SAVED_TERM_ATTRS = mode.value
+        except Exception:
+            pass
+    else:
+        try:
+            import termios
 
-        _SAVED_TERM_ATTRS = termios.tcgetattr(sys.stdin.fileno())
-    except Exception:
-        pass
+            _SAVED_TERM_ATTRS = termios.tcgetattr(sys.stdin.fileno())
+        except Exception:
+            pass
 
     from nanobot.config.paths import get_cli_history_path
 

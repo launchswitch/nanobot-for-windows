@@ -67,6 +67,13 @@ class ExecTool(Tool):
             # PowerShell dangerous patterns
             r"\bRemove-Item\s+.*-Recurse.*-Force",  # Remove-Item -Recurse -Force
             r"\bStop-Process\s+.*-Force",           # Stop-Process -Force
+            # Windows system-level dangerous commands
+            r"\breg\s+(delete|add)\b",        # registry manipulation
+            r"\bnet\s+(user|localgroup)\b",   # account/group manipulation
+            r"\bcipher\s+/w\b",               # disk wipe
+            r"\bwbadmin\b",                   # backup delete/manipulation
+            r"\bsfc\b",                       # system file checker
+            r"\bdism\b",                      # deployment image servicing
             # Block writes to nanobot internal state files (#2989).
             # history.jsonl / .dream_cursor are managed by append_history();
             # direct writes corrupt the cursor format and crash /dream.
@@ -320,6 +327,7 @@ class ExecTool(Tool):
                 "SYSTEMROOT": sr,
                 "COMSPEC": os.environ.get("COMSPEC", f"{sr}\\system32\\cmd.exe"),
                 "USERPROFILE": os.environ.get("USERPROFILE", ""),
+                "USERNAME": os.environ.get("USERNAME", ""),
                 "HOMEDRIVE": os.environ.get("HOMEDRIVE", "C:"),
                 "HOMEPATH": os.environ.get("HOMEPATH", "\\"),
                 "TEMP": os.environ.get("TEMP", f"{sr}\\Temp"),
@@ -333,7 +341,15 @@ class ExecTool(Tool):
                 "ProgramFiles(x86)": os.environ.get("ProgramFiles(x86)", ""),
                 "ProgramW6432": os.environ.get("ProgramW6432", ""),
                 "PSModulePath": os.environ.get("PSModulePath", ""),
+                "COMPUTERNAME": os.environ.get("COMPUTERNAME", ""),
+                "PROCESSOR_ARCHITECTURE": os.environ.get("PROCESSOR_ARCHITECTURE", ""),
+                "NUMBER_OF_PROCESSORS": os.environ.get("NUMBER_OF_PROCESSORS", ""),
+                "OS": os.environ.get("OS", ""),
             }
+            for opt_key in ("SESSIONNAME", "DriverData"):
+                val = os.environ.get(opt_key)
+                if val is not None:
+                    env[opt_key] = val
             for key in self.allowed_env_keys:
                 val = os.environ.get(key)
                 if val is not None:
