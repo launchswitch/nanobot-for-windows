@@ -1,2 +1,4 @@
 # Ensure shell scripts always use LF line endings (Docker/Linux compat)
 *.sh text eol=lf
+# Ensure PowerShell scripts use CRLF line endings (Windows native)
+*.ps1 text eol=crlf

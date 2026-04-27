@@ -168,3 +168,83 @@ launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/ai.nanobot.gateway.plist
 After editing the plist, run `launchctl bootout ...` and `launchctl bootstrap ...` again.
 
 > **Note:** if startup fails with "address already in use", stop the manually started `nanobot gateway` process first.
+
+## Windows Service
+
+### Option A: NSSM (recommended)
+
+[NSSM](https://nssm.cc/) wraps any executable as a Windows Service with automatic restart and log management.
+
+**1. Install NSSM** (via [scoop](https://scoop.sh/) or direct download):
+
+```powershell
+scoop install nssm
+# or download from https://nssm.cc/download
+```
+
+**2. Find the nanobot executable path:**
+
+```powershell
+Get-Command nanobot | Select-Object Source
+# e.g. C:\Users\YourUser\AppData\Local\Programs\Python\Python312\Scripts\nanobot.exe
+```
+
+**3. Create the service:**
+
+```powershell
+nssm install NanobotGateway "C:\path\to\nanobot.exe" gateway
+nssm set NanobotGateway AppDirectory "%APPDATA%\nanobot"
+nssm set NanobotGateway DisplayName "Nanobot Gateway"
+nssm set NanobotGateway Start SERVICE_AUTO_START
+nssm set NanobotGateway AppStdout "%APPDATA%\nanobot\logs\gateway.log"
+nssm set NanobotGateway AppStderr "%APPDATA%\nanobot\logs\gateway.error.log"
+nssm set NanobotGateway AppRotateFiles 1
+nssm set NanobotGateway AppRotateBytes 10485760
+```
+
+**4. Start the service:**
+
+```powershell
+nssm start NanobotGateway
+```
+
+**Common operations:**
+
+```powershell
+nssm status NanobotGateway         # check status
+nssm restart NanobotGateway        # restart
+nssm stop NanobotGateway           # stop
+nssm edit NanobotGateway           # open GUI editor
+nssm remove NanobotGateway         # remove service
+```
+
+### Option B: Task Scheduler
+
+For simpler auto-start without service management:
+
+```powershell
+$action = New-ScheduledTaskAction -Execute "nanobot" -Argument "gateway"
+$trigger = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME
+$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1)
+Register-ScheduledTask -TaskName "NanobotGateway" -Action $action -Trigger $trigger -Settings $settings -Description "Nanobot AI assistant gateway"
+```
+
+### Windows Firewall
+
+If you need remote access to the gateway or API server:
+
+```powershell
+New-NetFirewallRule -DisplayName "Nanobot Gateway" -Direction Inbound -LocalPort 18790 -Protocol TCP -Action Allow
+New-NetFirewallRule -DisplayName "Nanobot API" -Direction Inbound -LocalPort 8900 -Protocol TCP -Action Allow
+```
+
+### Docker on Windows
+
+Nanobot runs in Docker via Docker Desktop (WSL2 backend). The Dockerfile is Linux-based; use the Linux instructions above. Config is stored in the mounted volume:
+
+```powershell
+# The ~ path works in PowerShell via Docker Desktop
+docker run -v "$HOME/.nanobot:/home/nanobot/.nanobot" -p 18790:18790 nanobot gateway
+```
+
+> **Note:** On Windows, nanobot stores config in `%APPDATA%\nanobot` by default. The Docker path still uses `~/.nanobot` inside the container.

@@ -68,7 +68,7 @@ class DreamConfig(Base):
 class AgentDefaults(Base):
     """Default agent configuration."""
 
-    workspace: str = "~/.nanobot/workspace"
+    workspace: str = ""  # resolved dynamically; see AgentDefaults.get_workspace()
     model: str = "anthropic/claude-opus-4-5"
     provider: str = (
         "auto"  # Provider name (e.g. "anthropic", "openrouter") or "auto" for auto-detection
@@ -198,7 +198,7 @@ class ExecToolConfig(Base):
     enable: bool = True
     timeout: int = 60
     path_append: str = ""
-    sandbox: str = ""  # sandbox backend: "" (none) or "bwrap"
+    sandbox: str = ""  # sandbox backend: "" (none), "bwrap" (Linux), or "windows-restricted" (Windows)
     allowed_env_keys: list[str] = Field(default_factory=list)  # Env var names to pass through to subprocess (e.g. ["GOPATH", "JAVA_HOME"])
 
 class MCPServerConfig(Base):
@@ -244,7 +244,11 @@ class Config(BaseSettings):
     @property
     def workspace_path(self) -> Path:
         """Get expanded workspace path."""
-        return Path(self.agents.defaults.workspace).expanduser()
+        ws = self.agents.defaults.workspace
+        if not ws:
+            from nanobot.config.paths import get_data_root
+            return get_data_root() / "workspace"
+        return Path(ws).expanduser()
 
     def _match_provider(
         self, model: str | None = None

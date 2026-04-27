@@ -43,8 +43,9 @@ class Nanobot:
         """Create a Nanobot instance from a config file.
 
         Args:
-            config_path: Path to ``config.json``.  Defaults to
-                ``~/.nanobot/config.json``.
+            config_path: Path to ``config.json``.  Defaults to the
+                platform data root (``~/.nanobot`` on Unix,
+                ``%APPDATA%\\nanobot`` on Windows).
             workspace: Override the workspace directory from config.
         """
         from nanobot.config.loader import load_config, resolve_config_env_vars

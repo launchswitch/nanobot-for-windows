@@ -26,7 +26,8 @@ def get_config_path() -> Path:
     """Get the configuration file path."""
     if _current_config_path:
         return _current_config_path
-    return Path.home() / ".nanobot" / "config.json"
+    from nanobot.config.paths import get_data_root
+    return get_data_root() / "config.json"
 
 
 def load_config(config_path: Path | None = None) -> Config:

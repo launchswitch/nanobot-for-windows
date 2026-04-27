@@ -61,6 +61,9 @@ class ExecTool(Tool):
             r">\s*/dev/sd",                  # write to disk
             r"\b(shutdown|reboot|poweroff)\b",  # system power
             r":\(\)\s*\{.*\};\s*:",          # fork bomb
+            # PowerShell dangerous patterns
+            r"\bRemove-Item\s+.*-Recurse.*-Force",  # Remove-Item -Recurse -Force
+            r"\bStop-Process\s+.*-Force",           # Stop-Process -Force
             # Block writes to nanobot internal state files (#2989).
             # history.jsonl / .dream_cursor are managed by append_history();
             # direct writes corrupt the cursor format and crash /dream.
@@ -90,6 +93,7 @@ class ExecTool(Tool):
             "and grep/glob over shell find/grep. "
             "Use -y or --yes flags to avoid interactive prompts. "
             "Output is truncated at 10 000 chars; timeout defaults to 60s."
+            "On Windows, commands run in PowerShell (pwsh) if available."
         )
 
     @property
@@ -121,15 +125,15 @@ class ExecTool(Tool):
             return guard_error
 
         if self.sandbox:
-            if _IS_WINDOWS:
+            if _IS_WINDOWS and self.sandbox == "bwrap":
                 logger.warning(
-                    "Sandbox '{}' is not supported on Windows; running unsandboxed",
+                    "Sandbox '{}' is not supported on Windows; falling back to 'windows-restricted'",
                     self.sandbox,
                 )
-            else:
-                workspace = self.working_dir or cwd
-                command = wrap_command(self.sandbox, command, workspace, cwd)
-                cwd = str(Path(workspace).resolve())
+                self.sandbox = "windows-restricted"
+            workspace = self.working_dir or cwd
+            command = wrap_command(self.sandbox, command, workspace, cwd)
+            cwd = str(Path(workspace).resolve())
 
         effective_timeout = min(timeout or self.timeout, self._MAX_TIMEOUT)
         env = self._build_env()
@@ -190,6 +194,15 @@ class ExecTool(Tool):
     ) -> asyncio.subprocess.Process:
         """Launch *command* in a platform-appropriate shell."""
         if _IS_WINDOWS:
+            pwsh = shutil.which("pwsh") or shutil.which("powershell")
+            if pwsh:
+                return await asyncio.create_subprocess_exec(
+                    pwsh, "-NoProfile", "-Command", command,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                    cwd=cwd,
+                    env=env,
+                )
             comspec = env.get("COMSPEC", os.environ.get("COMSPEC", "cmd.exe"))
             return await asyncio.create_subprocess_exec(
                 comspec, "/c", command,
@@ -250,6 +263,7 @@ class ExecTool(Tool):
                 "ProgramFiles": os.environ.get("ProgramFiles", ""),
                 "ProgramFiles(x86)": os.environ.get("ProgramFiles(x86)", ""),
                 "ProgramW6432": os.environ.get("ProgramW6432", ""),
+                "PSModulePath": os.environ.get("PSModulePath", ""),
             }
             for key in self.allowed_env_keys:
                 val = os.environ.get(key)

@@ -17,6 +17,7 @@ import importlib.util
 import json
 import os
 import re
+import sys
 import tempfile
 import threading
 import time
@@ -30,6 +31,26 @@ try:  # pragma: no cover - Windows fallback path
     import fcntl
 except ImportError:  # pragma: no cover
     fcntl = None
+
+
+def _file_lock_ex(fp) -> None:
+    """Acquire an exclusive cross-process file lock."""
+    if fcntl is not None:
+        fcntl.flock(fp.fileno(), fcntl.LOCK_EX)
+    elif sys.platform == "win32":
+        import msvcrt
+        fp.seek(0)
+        msvcrt.locking(fp.fileno(), msvcrt.LK_LOCK, 1)
+
+
+def _file_lock_un(fp) -> None:
+    """Release the file lock."""
+    if fcntl is not None:
+        fcntl.flock(fp.fileno(), fcntl.LOCK_UN)
+    elif sys.platform == "win32":
+        import msvcrt
+        fp.seek(0)
+        msvcrt.locking(fp.fileno(), msvcrt.LK_UNLCK, 1)
 
 import httpx
 from loguru import logger
@@ -608,13 +629,11 @@ class MSTeamsChannel(BaseChannel):
         self._refs_path.parent.mkdir(parents=True, exist_ok=True)
         lock_fp = self._refs_lock_path.open("a+", encoding="utf-8")
         try:
-            if fcntl is not None:
-                fcntl.flock(lock_fp.fileno(), fcntl.LOCK_EX)
+            _file_lock_ex(lock_fp)
             yield
         finally:
             try:
-                if fcntl is not None:
-                    fcntl.flock(lock_fp.fileno(), fcntl.LOCK_UN)
+                _file_lock_un(lock_fp)
             finally:
                 lock_fp.close()
 

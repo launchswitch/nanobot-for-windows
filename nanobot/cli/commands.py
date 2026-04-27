@@ -83,6 +83,17 @@ def _flush_pending_tty_input() -> None:
     except Exception:
         return
 
+    # Windows: use msvcrt to drain the console input buffer
+    if sys.platform == "win32":
+        try:
+            import msvcrt
+            while msvcrt.kbhit():
+                msvcrt.getch()
+            return
+        except Exception:
+            return
+
+    # Unix: prefer termios, fall back to select
     try:
         import termios
 
