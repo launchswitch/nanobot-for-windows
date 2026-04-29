@@ -32,6 +32,13 @@ This fork tracks upstream closely and layers on Windows-native improvements:
 
 See [docs/deployment.md](./docs/deployment.md) for the full Windows deployment guide and [manifests/](./manifests/) for the winget manifest.
 
+## News
+
+- **2026-04-29** Synced with upstream **v0.1.5.post3** — DeepSeek-V4, Hugging Face & Olostep providers, thread sessions for Feishu/Discord/Slack/Teams, `ask_user` tool, `/history` command, per-channel progress controls, atomic history writes, and LLM request timeouts. Notable for Windows: upstream now includes a WinError 193 fix for MCP stdio launchers and Matrix user-id sanitization for Windows-safe filenames.
+- **2026-04-21** Upstream **v0.1.5.post2** added Windows & Python 3.14 CI, Office document reading, SSE streaming, and stronger session/memory reliability.
+
+For the full upstream changelog, see [upstream releases](https://github.com/HKUDS/nanobot/releases).
+
 ## Install
 
 > [!IMPORTANT]
@@ -125,7 +132,7 @@ bun run dev
   <img src="images/nanobot_arch.png" alt="nanobot architecture" width="800">
 </p>
 
-nanobot stays lightweight by centering everything around a small agent loop: messages come in from chat apps, the LLM decides when tools are needed, and memory or skills are pulled in only as context instead of becoming a heavy orchestration layer.
+nanobot stays lightweight by centering everything around a small agent loop: messages come in from chat apps, the LLM decides when tools are needed, and memory or skills are pulled in only as context instead of becoming a heavy orchestration layer. That keeps the core path readable and easy to extend, while still letting you add channels, tools, memory, and deployment options without turning the system into a monolith.
 
 ## Features
 
