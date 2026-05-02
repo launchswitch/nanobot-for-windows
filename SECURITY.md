@@ -60,6 +60,47 @@ chmod 600 ~/.nanobot/config.json
 - Use full phone numbers with country code for WhatsApp
 - Review access logs regularly for unauthorized access attempts
 
+**Recommended local daemon + remote Telegram setup:**
+
+This is the safest way to keep nanobot running locally while messaging it remotely through Telegram:
+
+```json
+{
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "token": "${TELEGRAM_BOT_TOKEN}",
+      "allowFrom": ["123456789"],
+      "groupPolicy": "mention",
+      "dropPendingUpdates": true,
+      "inboundRateLimitCount": 20,
+      "inboundRateLimitWindowS": 60
+    },
+    "websocket": {
+      "enabled": false,
+      "host": "127.0.0.1",
+      "websocketRequiresToken": true
+    }
+  },
+  "api": {
+    "host": "127.0.0.1"
+  },
+  "gateway": {
+    "host": "127.0.0.1"
+  },
+  "tools": {
+    "restrictToWorkspace": true
+  }
+}
+```
+
+- Do not use `allowFrom: ["*"]` for a Telegram bot that controls a long-running local agent.
+- Prefer numeric Telegram user IDs over usernames; usernames can change.
+- Rotate the bot token immediately if it was committed, pasted into logs, or shown in a shared terminal.
+- Leave the gateway/API/WebSocket hosts on `127.0.0.1`; Telegram polling does not require inbound firewall rules or public ports.
+- Keep `dropPendingUpdates` enabled so a restart does not process a backlog of stale remote commands.
+- Set `tools.restrictToWorkspace` so file tools stay inside the configured workspace. On Linux, use the bwrap sandbox as well.
+
 ### 3. Shell Command Execution
 
 The `exec` tool can execute shell commands. While dangerous command patterns are blocked, you should:

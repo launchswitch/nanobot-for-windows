@@ -238,6 +238,9 @@ class TelegramConfig(Base):
     connection_pool_size: int = 32
     pool_timeout: float = 5.0
     streaming: bool = True
+    drop_pending_updates: bool = True
+    inbound_rate_limit_count: int = Field(default=20, ge=1)
+    inbound_rate_limit_window_s: float = Field(default=60.0, ge=1.0)
     # Enable inline keyboard buttons in Telegram messages.
     inline_keyboards: bool = False
     stream_edit_interval: float = Field(default=_STREAM_EDIT_INTERVAL_DEFAULT, ge=0.1)
@@ -285,6 +288,7 @@ class TelegramChannel(BaseChannel):
         self._bot_user_id: int | None = None
         self._bot_username: str | None = None
         self._stream_bufs: dict[str, _StreamBuf] = {}  # chat_id -> streaming state
+        self._inbound_rate_hits: dict[str, list[float]] = {}
 
     def is_allowed(self, sender_id: str) -> bool:
         """Preserve Telegram's legacy id|username allowlist matching."""
@@ -406,7 +410,7 @@ class TelegramChannel(BaseChannel):
         # Start polling (this runs until stopped)
         await self._app.updater.start_polling(
             allowed_updates=allowed_updates,
-            drop_pending_updates=False,  # Process pending messages on startup
+            drop_pending_updates=self.config.drop_pending_updates,
             error_callback=self._on_polling_error,
         )
 
@@ -793,6 +797,8 @@ class TelegramChannel(BaseChannel):
             return
 
         user = update.effective_user
+        if not self._authorize_sender(self._sender_id(user)):
+            return
         await update.message.reply_text(
             f"👋 Hi {user.first_name}! I'm nanobot.\n\n"
             "Send me a message and I'll respond!\n"
@@ -800,8 +806,10 @@ class TelegramChannel(BaseChannel):
         )
 
     async def _on_help(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        """Handle /help command, bypassing ACL so all users can access it."""
-        if not update.message:
+        """Handle /help command."""
+        if not update.message or not update.effective_user:
+            return
+        if not self._authorize_sender(self._sender_id(update.effective_user)):
             return
         await update.message.reply_text(build_help_text())
 
@@ -810,6 +818,40 @@ class TelegramChannel(BaseChannel):
         """Build sender_id with username for allowlist matching."""
         sid = str(user.id)
         return f"{sid}|{user.username}" if user.username else sid
+
+    def _is_rate_limited(self, sender_id: str) -> bool:
+        """Return True when *sender_id* has exceeded the configured inbound rate."""
+        now = time.monotonic()
+        window = float(self.config.inbound_rate_limit_window_s)
+        hits = [
+            ts for ts in self._inbound_rate_hits.get(sender_id, [])
+            if now - ts <= window
+        ]
+        limit = int(self.config.inbound_rate_limit_count)
+        if len(hits) >= limit:
+            self._inbound_rate_hits[sender_id] = hits
+            logger.warning(
+                "Telegram rate limit exceeded for sender {}: {}/{}s",
+                sender_id,
+                limit,
+                window,
+            )
+            return True
+        hits.append(now)
+        self._inbound_rate_hits[sender_id] = hits
+        return False
+
+    def _authorize_sender(self, sender_id: str, *, apply_rate_limit: bool = False) -> bool:
+        """Check ACL before any expensive Telegram-side work."""
+        if not self.is_allowed(sender_id):
+            logger.warning(
+                "Telegram access denied for sender {}. Add their numeric user ID to allowFrom.",
+                sender_id,
+            )
+            return False
+        if apply_rate_limit and self._is_rate_limited(sender_id):
+            return False
+        return True
 
     @staticmethod
     def _derive_topic_session_key(message) -> str | None:
@@ -993,6 +1035,10 @@ class TelegramChannel(BaseChannel):
         message = update.message
         user = update.effective_user
         self._remember_thread_context(message)
+        sender_id = self._sender_id(user)
+
+        if not self._authorize_sender(sender_id, apply_rate_limit=True):
+            return
 
         # Strip @bot_username suffix if present
         content = message.text or ""
@@ -1003,7 +1049,7 @@ class TelegramChannel(BaseChannel):
         content = self._normalize_telegram_command(content)
 
         await self._handle_message(
-            sender_id=self._sender_id(user),
+            sender_id=sender_id,
             chat_id=str(message.chat_id),
             content=content,
             metadata=self._build_message_metadata(message, user),
@@ -1021,11 +1067,14 @@ class TelegramChannel(BaseChannel):
         sender_id = self._sender_id(user)
         self._remember_thread_context(message)
 
-        # Store chat_id for replies
-        self._chat_ids[sender_id] = chat_id
+        if not self._authorize_sender(sender_id, apply_rate_limit=True):
+            return
 
         if not await self._is_group_message_for_bot(message):
             return
+
+        # Store chat_id for replies only after ACL and group-routing checks pass.
+        self._chat_ids[sender_id] = chat_id
 
         # Build content from text and/or media
         content_parts = []
@@ -1263,6 +1312,9 @@ class TelegramChannel(BaseChannel):
             logger.warning("Callback query without chat_id")
             return
         button_label = query.data or ""
+        if not self._authorize_sender(sender_id, apply_rate_limit=True):
+            await query.answer()
+            return
         await query.answer()
         if query.message:
             try:
