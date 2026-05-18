@@ -97,10 +97,13 @@ nanobot agent
 - Chat apps (Telegram, Discord, Slack, etc.): [Chat Apps](./docs/chat-apps.md)
 - Docker, Windows Service, or Linux deployment: [Deployment](./docs/deployment.md)
 
-## WebUI (Development)
+- Want different LLM providers, web search, MCP, security settings, or more config options? See [Configuration](./docs/configuration.md)
+- Want to run nanobot in chat apps like Telegram, Discord, WeChat or Feishu? See [Chat Apps](./docs/chat-apps.md)
+- Want Docker, Windows Service, or Linux service deployment? See [Deployment](./docs/deployment.md)
 
-> [!NOTE]
-> The WebUI requires a source checkout. See [WebUI docs](./webui/README.md) for build steps.
+## 🌐 WebUI
+
+The WebUI ships **inside the published wheel** — no extra build step. Just enable the WebSocket channel and open it in your browser.
 
 <p align="center">
   <img src="images/nanobot_webui.png" alt="nanobot webui preview" width="900">
@@ -118,13 +121,12 @@ nanobot agent
 nanobot gateway
 ```
 
-**3. Start the webui dev server**
+**3. Open the WebUI**
 
-```bash
-cd webui
-bun install
-bun run dev
-```
+Visit [`http://127.0.0.1:8765`](http://127.0.0.1:8765) in your browser. To open it from another device on your LAN, see [WebUI docs → LAN access](./webui/README.md#access-from-another-device-lan).
+
+> [!TIP]
+> Working on the WebUI itself? Check out [`webui/README.md`](./webui/README.md) for the Vite dev server (HMR) workflow.
 
 ## Architecture
 
